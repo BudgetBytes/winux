@@ -11,8 +11,8 @@ const RECURSIVE_FLAG = "-r";
 const RECURSIVE_DESC = "Search recursively.";
 
 fn void! find(Path start, Drcli cli) {
-    UserFlag patterns = cli.userFlags.getByFlag(PATTERN_FLAG)!;
-    bool recursive = cli.userFlags.contains(RECURSIVE_FLAG);
+    Flags patterns = cli.flags.getById(PATTERN_FLAG)!;
+    bool recursive = cli.flags.contains(RECURSIVE_FLAG);
 
     PathList pathList = path::ls(start)!;	
 
@@ -32,7 +32,7 @@ fn void! find(Path start, Drcli cli) {
 }
 
 fn void! start(Drcli cli) {
-    UserFlag baseDir = cli.userFlags.getByFlag(BASEDIR_FLAG)!;
+    Flags baseDir = cli.flags.getById(BASEDIR_FLAG)!;
 
     foreach (b : baseDir.values) {
         Path! path = path::new(b);
@@ -59,11 +59,11 @@ fn void! start(Drcli cli) {
 
 fn void! main(String[] args)
 {
-    List(<ProgramFlag>) flags;
+    List(<Flag>) flags;
     
-    ProgramFlag baseDir = {BASEDIR_FLAG, BASEDIR_DESC, true, true};
-    ProgramFlag pattern = {PATTERN_FLAG, PATTERN_DESC, true, true};
-    ProgramFlag recursive = {RECURSIVE_FLAG, RECURSIVE_DESC, false, false};
+    Flag baseDir = {BASEDIR_FLAG, BASEDIR_DESC, true, true};
+    Flag pattern = {PATTERN_FLAG, PATTERN_DESC, true, true};
+    Flag recursive = {RECURSIVE_FLAG, RECURSIVE_DESC, false, false};
     
     flags.push(baseDir);
     flags.push(pattern);
