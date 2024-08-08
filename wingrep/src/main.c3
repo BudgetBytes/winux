@@ -66,7 +66,6 @@ fn void print(Match match, Drcli cli) {
                 io::printfn("%s%s%s:%s%d%s:%s%s",BRIGHT_MAGENTA, match.filename, BRIGHT_CYAN, BRIGHT_GREEN, line.number, BRIGHT_CYAN, RESET, line.line);
             } else {
                 io::printfn("%s%s%s:%s%s",BRIGHT_MAGENTA, match.filename, BRIGHT_CYAN, RESET, line.line);
-                io::printfn("%s:%s", match.filename, line.line);
             }
         }        
     }
