@@ -56,6 +56,22 @@ struct Match {
     bool matches;
 }
 
+fn void printfilename(String filename) {
+    io::printf("%s%s%s", BRIGHT_MAGENTA, filename, RESET);
+}
+
+fn void printcolumn() {
+    io::printf("%s:%s", BRIGHT_CYAN, RESET);
+}
+
+fn void printlinenum(int n) {
+    io::printf("%s%d%s", BRIGHT_GREEN, n, RESET);
+}
+
+fn void printmatch(String line, int start, int end) {
+    io::printf("%s%s%s%s%s", start != 0 ? line[..start - 1] : "", BRIGHT_RED, line[start : end], RESET, line[start + end..]);
+}
+
 fn void print(Match match, Drcli cli) {
 
     bool linenumber = cli.flags.contains(LINENUMBER_FLAG);
@@ -71,10 +87,17 @@ fn void print(Match match, Drcli cli) {
             int start = line.start;
             int end = line.end;
             if (linenumber) {
-                io::printfn("%s%s%s:%s%d%s:%s%s%s%s%s%s",BRIGHT_MAGENTA, match.filename, BRIGHT_CYAN, BRIGHT_GREEN, line.number, BRIGHT_CYAN, RESET, line.line[..start- 1], BRIGHT_RED, line.line[start : end], RESET, line.line[start + end..]);
+                printfilename(match.filename);
+                printcolumn();
+                printlinenum(line.number);
+                printcolumn();
+                printmatch(line.line, line.start, line.end);
+                io::printn();
             } else {
-                io::printfn("%s%s%s:%s%s%s%s%s%s",BRIGHT_MAGENTA, match.filename, BRIGHT_CYAN, RESET, line.line[..start- 1], BRIGHT_RED, line.line[start : end], RESET, line.line[start + end..]);
-                
+                printfilename(match.filename);
+                printcolumn();
+                printmatch(line.line, line.start, line.end);
+                io::printn();
             }
         }        
     }
@@ -94,7 +117,14 @@ fn bool! isExcluded(Path path, Drcli cli) {
     return false;
 }
 
-fn Line! contains(String line,  String pattern, int linenumber,) {
+fn Line! contains(String line,  String pattern, int linenumber) {
+    if (line == pattern) {
+        return {
+            line, linenumber, 0, line.len
+        };
+    }
+    
+    
     int start = 0;
     int end = 0;
 
@@ -108,10 +138,11 @@ fn Line! contains(String line,  String pattern, int linenumber,) {
         if (j == pattern.len) {
             start = i;
             end = j;
+            break;
         }
     }
 
-    if (start != 0 && end != 0) {
+    if (end != 0) {
         return {
             line, linenumber, start, end
         };
@@ -128,12 +159,12 @@ fn void! match(Path path, Drcli cli) {
         return;
     } 
 
+    String bytes = (String)file::load_temp(path.str_view())!;
+    String[] lines = bytes.split("\n");
     foreach(pattern : patternflag.values) {
-        String bytes = (String)file::load_temp(path.str_view())!;
-        String[] lines = bytes.split("\n");
         Match match = {path.str_view(), {}, false};
 
-        for (int i = 0, int n = 0; i < lines.len; ++i, ++n) {
+        for (int i = 0, int n = 1; i < lines.len; ++i, ++n) {
             Line! line = contains(lines[i], pattern, n);
             if (catch err = line) {
                 continue;
