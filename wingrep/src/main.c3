@@ -39,9 +39,15 @@ const BRIGHT_MAGENTA = "\x1b[95m";
 const BRIGHT_CYAN    = "\x1b[96m";
 const BRIGHT_WHITE   = "\x1b[97m";
 
+fault WingrepError {
+    NO_MATCH
+}
+
 struct Line {
     String line;
     int number;
+    int start;
+    int end;
 }
 
 struct Match {
@@ -62,10 +68,13 @@ fn void print(Match match, Drcli cli) {
         io::printfn("%s%s%s", BRIGHT_MAGENTA, match.filename, RESET);
     }  else if (!fileswithoutmatch && match.matches){
         foreach (line : match.lines) {
+            int start = line.start;
+            int end = line.end;
             if (linenumber) {
-                io::printfn("%s%s%s:%s%d%s:%s%s",BRIGHT_MAGENTA, match.filename, BRIGHT_CYAN, BRIGHT_GREEN, line.number, BRIGHT_CYAN, RESET, line.line);
+                io::printfn("%s%s%s:%s%d%s:%s%s%s%s%s%s",BRIGHT_MAGENTA, match.filename, BRIGHT_CYAN, BRIGHT_GREEN, line.number, BRIGHT_CYAN, RESET, line.line[..start- 1], BRIGHT_RED, line.line[start : end], RESET, line.line[start + end..]);
             } else {
-                io::printfn("%s%s%s:%s%s",BRIGHT_MAGENTA, match.filename, BRIGHT_CYAN, RESET, line.line);
+                io::printfn("%s%s%s:%s%s%s%s%s%s",BRIGHT_MAGENTA, match.filename, BRIGHT_CYAN, RESET, line.line[..start- 1], BRIGHT_RED, line.line[start : end], RESET, line.line[start + end..]);
+                
             }
         }        
     }
@@ -85,6 +94,32 @@ fn bool! isExcluded(Path path, Drcli cli) {
     return false;
 }
 
+fn Line! contains(String line,  String pattern, int linenumber,) {
+    int start = 0;
+    int end = 0;
+
+    for (int i = 0; i < line.len; ++i) {
+        int j = 0;
+        int h = i;
+        while (j < pattern.len && h < line.len && line[h] == pattern[j]) {
+            ++j; ++h;
+        }
+
+        if (j == pattern.len) {
+            start = i;
+            end = j;
+        }
+    }
+
+    if (start != 0 && end != 0) {
+        return {
+            line, linenumber, start, end
+        };
+    }
+
+    return WingrepError.NO_MATCH?;
+}
+
 fn void! match(Path path, Drcli cli) {
     Flags patternflag = cli.flags.getById(PATTERN_FLAG)!;
    
@@ -99,13 +134,12 @@ fn void! match(Path path, Drcli cli) {
         Match match = {path.str_view(), {}, false};
 
         for (int i = 0, int n = 0; i < lines.len; ++i, ++n) {
-            String line = lines[i];
-
-            if(line.contains(pattern)) {
-                match.filename = path.str_view();
-                match.lines.push({line, n});
-                match.matches = true;
+            Line! line = contains(lines[i], pattern, n);
+            if (catch err = line) {
+                continue;
             } 
+            match.lines.push(line);
+            match.matches = true; 
         }
 
         print(match, cli);
